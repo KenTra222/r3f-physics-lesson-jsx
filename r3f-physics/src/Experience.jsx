@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Perf } from 'r3f-perf'
 import { OrbitControls, useGLTF } from '@react-three/drei'
-import {Physics, RigidBody, CuboidCollider, CylinderCollider} from '@react-three/rapier'
+import {InstancedRigidBodies, Physics, RigidBody, CuboidCollider, CylinderCollider} from '@react-three/rapier'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
@@ -12,6 +12,7 @@ export default function Experience()
     const model = useGLTF('../public/hamburger.glb')
     console.log( model)
     const cube = useRef()
+    const cubes = useRef()
     const twister = useRef()
 
     const cubeJump = () => {
@@ -21,6 +22,8 @@ export default function Experience()
         //adds the rotation of the object
         cube.current.applyTorqueImpulse({ x: 0, y: 1, z: 0 })
     }
+
+    const cubesCount = 3
 
     useFrame((state) => {
     // gets the time
@@ -39,6 +42,21 @@ export default function Experience()
     const z = Math.sin(angle) * 2
     twister.current.setNextKinematicTranslation({ x: x, y: - 0.8, z: z })
     })
+
+    useEffect(() =>
+    {
+        for(let i = 0; i < cubesCount; i++)
+    {
+        const matrix = new THREE.Matrix4()
+        matrix.compose(
+            new THREE.Vector3(i * 2, 0, 0),
+            new THREE.Quaternion(),
+            new THREE.Vector3(1, 1, 1)
+        )
+
+        cubes.current.setMatrixAt(i, matrix)
+    }
+    }, [])
 
     return <>
 
@@ -84,21 +102,36 @@ export default function Experience()
         </mesh>
     </RigidBody>
 
-    <RigidBody colliders={ false } position={ [ 0, 4, 0 ] }>
+    <RigidBody colliders={ "trimesh" } position={ [ 0, 4, 0 ] }>
+        <primitive object={model.scene} scale={0.2}/>
+        {/* <CylinderCollider args={ [ 0.5, 1.25 ] } /> */}
+    </RigidBody>
 
-    <primitive object={model.scene} scale={0.2}/>
-    <CylinderCollider args={ [ 0.5, 1.25 ] } />
+
+    <InstancedRigidBodies>
+        <instancedMesh ref={ cubes } args={ [ null, null, cubesCount ] }>
+            <boxGeometry />
+            <meshStandardMaterial color="tomato" />
+        </instancedMesh>
+    </InstancedRigidBodies>
+
+
+    {/* walls */}
+    <RigidBody type="fixed">
+        <CuboidCollider args={ [ 5, 2, 0.5 ] } position={ [ 0, 1, 5.5 ] } />
+        <CuboidCollider args={ [ 5, 2, 0.5 ] } position={ [ 0, 1, - 5.5 ] } />
+        <CuboidCollider args={ [ 0.5, 2, 5 ] } position={ [ 5.5, 1, 0 ] } />
+        <CuboidCollider args={ [ 0.5, 2, 5 ] } position={ [ - 5.5, 1, 0 ] } />
     </RigidBody>
 
     {/* floor */}
 
         <RigidBody type='fixed'
         restitution={ 1 }>
-
-        <mesh receiveShadow position-y={ - 1.25 }>
-            <boxGeometry args={ [ 10, 0.5, 10 ] } />
-            <meshStandardMaterial color="greenyellow" />
-        </mesh>
+            <mesh receiveShadow position-y={ - 1.25 }>
+                <boxGeometry args={ [ 10, 0.5, 10 ] } />
+                <meshStandardMaterial color="greenyellow" />
+            </mesh>
         </RigidBody>
     </Physics>
 
